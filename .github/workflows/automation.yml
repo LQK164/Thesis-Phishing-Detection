@@ -33,9 +33,9 @@ jobs:
     #  run: |
     #    python phase1.py  
 
-    #- name: Run phhish_database
-    #  run: |
-    #    python phish_database.py  
+    - name: Run phhish_database
+      run: |
+        python phish_database.py  
 
     #- name: Run URLs filtering
     #  run: |
