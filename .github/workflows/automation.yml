@@ -29,6 +29,18 @@ jobs:
         # Cài đặt các phụ thuộc nếu có, bạn có thể thêm các package cần thiết
         pip install httpx tenacity
 
-    - name: Run Python script
-      run: |
-        python phase1.py  # Chạy script Python
+    #- name: Run phase 1
+    #  run: |
+    #    python phase1.py  
+
+    #- name: Run phhish_database
+    #  run: |
+    #    python phish_database.py  
+
+    #- name: Run URLs filtering
+    #  run: |
+    #    python URLs Filter.py
+    
+    #- name: Run feature extraction
+    #  run: |
+    #    python feature_extraction.py
