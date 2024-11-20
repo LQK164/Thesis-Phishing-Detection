@@ -27,7 +27,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         # Cài đặt các phụ thuộc nếu có, bạn có thể thêm các package cần thiết
-        pip install requirements.txt #httpx tenacity
+        pip install -r requirements.txt #httpx tenacity
 
     #- name: Run phase 1
     #  run: |
