@@ -1,4 +1,4 @@
-name: Run Phase 1 Script
+name: Run URL Collect and Extract
 
 on:
   schedule:
