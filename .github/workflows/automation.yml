@@ -33,13 +33,13 @@ jobs:
     #  run: |
     #    python phase1.py  
 
-    - name: Run phhish_database
+    - name: Run phish_database
       run: |
         python phish_database.py  
 
-    #- name: Run URLs filtering
-    #  run: |
-    #    python URLs Filter.py
+    - name: Run URLs filtering
+      run: |
+        python URLs Filter.py
     
     #- name: Run feature extraction
     #  run: |
