@@ -76,9 +76,9 @@ def process_phishing_urls(input_files, phishing_file, output_file, max_workers=5
 
 # Sử dụng hàm
 input_files = [
-    r"URLs Storage/phishtank_urls.txt",
-    r"URLs Storage/phishstats_urls.txt",
-    r"URLs Storage/openphish_urls.txt",
+    r"URLs_Storage/phishtank_urls.txt",
+    r"URLs_Storage/phishstats_urls.txt",
+    r"URLs_Storage/openphish_urls.txt",
 ]  # Danh sách 3 file đầu vào
 phishing_file = "phishing_urls.txt"  # File gộp tất cả URL
 output_file = "active_phishing_urls.txt"  # File chứa URL còn sống
