@@ -20,7 +20,7 @@ def get_urls_from_github(url):
 urls = get_urls_from_github(url)
 if urls:
     with open(
-        "URLs Storage/phishing_database_github.txt", "w", encoding="utf-8"
+        "URLs_Storage/phishing_database_github.txt", "w", encoding="utf-8"
     ) as file:
         for u in urls:
             file.write(u + "\n")

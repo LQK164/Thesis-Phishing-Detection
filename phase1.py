@@ -228,12 +228,12 @@ if __name__ == "__main__":
 
     if openphish_urls:
         logging.info(f"Saving {len(openphish_urls)} OpenPhish URLs")
-        save_urls_to_file(openphish_urls, "./URLs Storage", "openphish_urls.txt")
+        save_urls_to_file(openphish_urls, "./URLs_Storage", "openphish_urls.txt")
 
     if phishstats_urls:
         logging.info(f"Saving {len(phishstats_urls)} PhishStats URLs")
-        save_urls_to_file(phishstats_urls, "./URLs Storage", "phishstats_urls.txt")
+        save_urls_to_file(phishstats_urls, "./URLs_Storage", "phishstats_urls.txt")
 
     if phishtank_urls:
         logging.info(f"Saving {len(phishtank_urls)} PhishTank URLs")
-        save_urls_to_file(phishtank_urls, "./URLs Storage", "phishtank_urls.txt")
+        save_urls_to_file(phishtank_urls, "./URLs_Storage", "phishtank_urls.txt")
