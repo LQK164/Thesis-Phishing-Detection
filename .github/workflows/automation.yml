@@ -2,7 +2,7 @@ name: Run URL Collect and Extract
 
 on:
   schedule:
-    - cron: '0 0 * * *' # At 00:00 everyday
+    - cron: '0 0 * * *' # At 08:00 everyday
   push:
     branches:
       - main  # Kích hoạt workflow khi có đẩy lên nhánh chính
