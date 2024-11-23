@@ -79,7 +79,8 @@ input_files = [
     r"URLs_Storage/phishtank_urls.txt",
     r"URLs_Storage/phishstats_urls.txt",
     r"URLs_Storage/openphish_urls.txt",
-]  # Danh sách 3 file đầu vào
+    r"URLs_Storage/phishing_database_github.txt",
+]  # Danh sách 4 file đầu vào
 phishing_file = "phishing_urls.txt"  # File gộp tất cả URL
 output_file = "active_phishing_urls.txt"  # File chứa URL còn sống
 process_phishing_urls(input_files, phishing_file, output_file)
