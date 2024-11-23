@@ -17,6 +17,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        token: ${{secrets.KLTN_GITHUB_TOKEN}}
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -44,3 +46,13 @@ jobs:
     #- name: Run feature extraction
     #  run: |
     #    python feature_extraction.py
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add ./URLs_Storage/
+        git commit -m "Update URLs collected on $(date +'%Y-%m-%d %H:%M:%S')"
+        git add url_count.log
+        git commit -m "Update log file on $(date +'%Y-%m-%d %H:%M:%S')"
+        git push origin main
