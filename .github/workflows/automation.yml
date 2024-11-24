@@ -55,4 +55,6 @@ jobs:
         git commit -m "Update URLs collected on $(date +'%Y-%m-%d %H:%M:%S')"
         git add url_count.log
         git commit -m "Update log file on $(date +'%Y-%m-%d %H:%M:%S')"
+        git add active_phishing_urls.txt
+        git commit -m "Update active_phishing_urls.txt on $(date +'%Y-%m-%d %H:%M:%S')"
         git push origin main
