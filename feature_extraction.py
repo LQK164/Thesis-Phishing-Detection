@@ -1,7 +1,8 @@
+import os
 import re
 import time
 import urllib.parse
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from functools import partial
 from typing import Any
@@ -14,7 +15,8 @@ from urllib.parse import urlparse
 import dns.resolver
 import Levenshtein
 import pandas as pd
-import polars as pl
+
+# import polars as pl
 import requests
 import tldextract
 import whois
@@ -845,53 +847,6 @@ def h_i_error(
     return count
 
 
-# def h_i_redirect(Href, Link, Media, Form, CSS, Favicon):
-#    count = 0
-#    for link in Href['internals']:
-#        try:
-#            r = requests.get(link, timeout = 1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in Link['internals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in Media['internals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in Form['internals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in CSS['internals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in Favicon['internals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    return count
-
-
 def internal_redirection(
     Href: dict[str, Any],
     Link: dict[str, Any],
@@ -910,53 +865,6 @@ def internal_redirection(
 #################################################################################################################################
 #               External redirections (Kumar Jain'18)
 #################################################################################################################################
-
-
-# def h_e_redirect(Href, Link, Media, Form, CSS, Favicon):
-#    count = 0
-#    for link in Href['externals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in Link['externals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in Media['externals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in Form['externals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in CSS['externals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    for link in Favicon['externals']:
-#        try:
-#            r = requests.get(link, timeout =1)
-#            if len(r.history) > 0:
-#                count+=1
-#        except:
-#            continue
-#    return count
 
 
 def external_redirection(
@@ -1416,15 +1324,7 @@ def is_URL_accessible(url: str):
         page = requests.get(url, headers=headers, timeout=10)
     except:
         pass
-        # parsed = urlparse(url)
-        # url = parsed.scheme+'://'+parsed.netloc
-        # if not parsed.netloc.startswith('www'):
-        #    url = parsed.scheme+'://www.'+parsed.netloc
-        #    try:
-        #        page = requests.get(url, timeout=10)
-        #    except:
-        #        page = None
-        #        pass
+
     if page and page.status_code == 200 and page.content not in ["b''", "b' '"]:
         return url, page
     else:
@@ -1609,22 +1509,23 @@ def extract_data_from_URL(
 
     # collect all css
     for link in soup.find_all("link", rel="stylesheet"):
-        dots = [x.start(0) for x in re.finditer(r"\.", link["href"])]
-        if (
-            hostname in link["href"]
-            or domain in link["href"]
-            or len(dots) == 1
-            or not link["href"].startswith("http")
-        ):
-            if not link["href"].startswith("http"):
-                if not link["href"].startswith("/"):
-                    CSS["internals"].append(hostname + "/" + link["href"])
-                elif link["href"] in Null_format:
-                    CSS["null"].append(link["href"])
-                else:
-                    CSS["internals"].append(hostname + link["href"])
-        else:
-            CSS["externals"].append(link["href"])
+        if "href" in link.attrs:
+            dots = [x.start(0) for x in re.finditer(r"\.", link["href"])]
+            if (
+                hostname in link["href"]
+                or domain in link["href"]
+                or len(dots) == 1
+                or not link["href"].startswith("http")
+            ):
+                if not link["href"].startswith("http"):
+                    if not link["href"].startswith("/"):
+                        CSS["internals"].append(hostname + "/" + link["href"])
+                    elif link["href"] in Null_format:
+                        CSS["null"].append(link["href"])
+                    else:
+                        CSS["internals"].append(hostname + link["href"])
+            else:
+                CSS["externals"].append(link["href"])
 
     for style in soup.find_all("style", type="text/css"):
         try:
@@ -1764,7 +1665,6 @@ def extract_data_from_URL(
 def extract_features(urls: list[str], url: str):
     def get_domain(url: str):
         o = urllib.parse.urlsplit(url)
-        # TODO: o.netloc (str) or o.hostname (str | None)?
         return o.netloc, tldextract.extract(url).domain, o.path
 
     def words_raw_extraction(domain: str, subdomain: str, path: str):
@@ -1786,6 +1686,8 @@ def extract_features(urls: list[str], url: str):
     IFrame = {"visible": [], "invisible": [], "null": []}
     Title = ""
     Text = ""
+
+    # Kiểm tra khả năng truy cập URL
     accessible_url = is_URL_accessible(url)
     if accessible_url:
         iurl, page = accessible_url
@@ -1847,9 +1749,10 @@ def extract_features(urls: list[str], url: str):
         )
         e_error = h_e_error(Href, Link, Media, Form, CSS, Favicon)
         i_error = h_i_error(Href, Link, Media, Form, CSS, Favicon)
+
+        # Trả về một dictionary hợp lệ
         row = {
             "url": url,
-            # url-based features
             "length_url": url_length(url),
             "length_hostname": url_length(hostname),
             "ip": having_ip_address(url),
@@ -1884,8 +1787,6 @@ def extract_features(urls: list[str], url: str):
             "abnormal_subdomain": abnormal_subdomain(url),
             "nb_subdomains": count_subdomain(url),
             "prefix_suffix": prefix_suffix(url),
-            # TODO: fix random_domain
-            # "random_domain": random_domain(url),
             "shortening_service": shortening_service(url),
             "path_extension": path_extension(path),
             "nb_redirection": count_redirection(page),
@@ -1909,7 +1810,6 @@ def extract_features(urls: list[str], url: str):
             "brand_in_path": brand_in_path(extracted_domain.domain, path, urls),
             "suspecious_tld": suspicious_tld(tld),
             "statistical_report": statistical_report(url, domain),
-            # # # content-based features
             "nb_hyperlinks": nb_hyperlinks(Href, Link, Media, Form, CSS, Favicon),
             "ratio_intHyperlinks": internal_hyperlinks(
                 Href, Link, Media, Form, CSS, Favicon
@@ -1917,10 +1817,6 @@ def extract_features(urls: list[str], url: str):
             "ratio_extHyperlinks": external_hyperlinks(
                 Href, Link, Media, Form, CSS, Favicon
             ),
-            # TODO: fix null hyperlinks
-            # "ratio_nullHyperlinks": null_hyperlinks(
-            #     Href, Link, Media, Form, CSS, Favicon
-            # ),
             "nb_extCSS": external_css(CSS),
             "ratio_intRedirection": internal_redirection(
                 Href, Link, Media, Form, CSS, Favicon, i_error
@@ -1928,10 +1824,6 @@ def extract_features(urls: list[str], url: str):
             "ratio_extRedirection": external_redirection(
                 Href, Link, Media, Form, CSS, Favicon, e_error
             ),
-            # TODO: fix internal errors
-            # "ratio_intErrors": internal_errors(
-            #     Href, Link, Media, Form, CSS, Favicon, i_error
-            # ),
             "ratio_extErrors": external_errors(
                 Href, Link, Media, Form, CSS, Favicon, e_error
             ),
@@ -1941,7 +1833,6 @@ def extract_features(urls: list[str], url: str):
             "submit_email": submitting_to_email(Form),
             "ratio_intMedia": internal_media(Media),
             "ratio_extMedia": external_media(Media),
-            #  # additional content-based features
             "iframe": iframe(IFrame),
             "popup_window": popup_window(Text),
             "safe_anchor": safe_anchor(Anchor),
@@ -1950,7 +1841,6 @@ def extract_features(urls: list[str], url: str):
             "domain_with_copyright": domain_with_copyright(
                 extracted_domain.domain, Text
             ),
-            # # # # third-party-based features
             "whois_registered_domain": whois_registered_domain(host, domain),
             "domain_registration_length": domain_registration_length(host),
             "domain_age": domain_age(host),
@@ -1960,142 +1850,195 @@ def extract_features(urls: list[str], url: str):
             "rank": rank(result_json),
             "domainEnd": domainEnd(host),
         }
-        return tuple(row.values())
+        return row
     else:
-        return (url,)
+        # Trả về một dictionary thay vì tuple khi URL không hợp lệ
+        return {
+            "url": url,
+            "length_url": None,
+            "length_hostname": None,
+            "ip": None,
+            "nb_dots": None,
+            "nb_hyphens": None,
+            "nb_at": None,
+            "nb_qm": None,
+            "nb_and": None,
+            "nb_or": None,
+            "nb_eq": None,
+            "nb_underscore": None,
+            "nb_tilde": None,
+            "nb_percent": None,
+            "nb_slash": None,
+            "nb_star": None,
+            "nb_colon": None,
+            "nb_comma": None,
+            "nb_semicolon": None,
+            "nb_dollar": None,
+            "nb_space": None,
+            "nb_www": None,
+            "nb_com": None,
+            "nb_dslash": None,
+            "http_in_path": None,
+            "https_token": None,
+            "ratio_digits_url": None,
+            "ratio_digits_host": None,
+            "punycode": None,
+            "port": None,
+            "tld_in_path": None,
+            "tld_in_subdomain": None,
+            "abnormal_subdomain": None,
+            "nb_subdomains": None,
+            "prefix_suffix": None,
+            "shortening_service": None,
+            "path_extension": None,
+            "nb_redirection": None,
+            "nb_external_redirection": None,
+            "length_words_raw": None,
+            "char_repeat": None,
+            "shortest_words_raw": None,
+            "shortest_word_host": None,
+            "shortest_word_path": None,
+            "longest_words_raw": None,
+            "longest_word_host": None,
+            "longest_word_path": None,
+            "avg_words_raw": None,
+            "avg_word_host": None,
+            "avg_word_path": None,
+            "phish_hints": None,
+            "domain_in_brand": None,
+            "brand_in_subdomain": None,
+            "brand_in_path": None,
+            "suspecious_tld": None,
+            "statistical_report": None,
+            "nb_hyperlinks": None,
+            "ratio_intHyperlinks": None,
+            "ratio_extHyperlinks": None,
+            "nb_extCSS": None,
+            "ratio_intRedirection": None,
+            "ratio_extRedirection": None,
+            "ratio_extErrors": None,
+            "login_form": None,
+            "external_favicon": None,
+            "links_in_tags": None,
+            "submit_email": None,
+            "ratio_intMedia": None,
+            "ratio_extMedia": None,
+            "iframe": None,
+            "popup_window": None,
+            "safe_anchor": None,
+            "empty_title": None,
+            "domain_in_title": None,
+            "domain_with_copyright": None,
+            "whois_registered_domain": None,
+            "domain_registration_length": None,
+            "domain_age": None,
+            "dns_record": None,
+            "google_index": None,
+            "page_rank": None,
+            "rank": None,
+            "domainEnd": None,
+        }
 
 
-def addingCSV():
-    with open("active_urls.txt", "r", encoding="utf-8") as f:
+def addingCSV(file_name, status_value):
+    # Đọc URL từ file (active_legitimate_urls.txt hoặc active_phishing_urls.txt)
+    with open(file_name, "r", encoding="utf-8") as f:
         urls = [line.rstrip() for line in f.readlines()]
 
-    # Create a DataFrame with the URLs
-    df = pd.DataFrame({"url": urls})
+    # Hàm xử lý song song với batch 100 URL
+    def process_batch(batch_urls):
+        return [extract_features(batch_urls, url) for url in batch_urls]
 
-    # Apply the feature extraction to each URL and store results in a list of dictionaries
-    mapped_data = [extract_features(urls, url) for url in urls]
+    # Tạo các batch 100 URL
+    batch_size = 100
+    url_batches = [urls[i : i + batch_size] for i in range(0, len(urls), batch_size)]
 
-    # Create a DataFrame from the mapped data
-    df_result = pd.DataFrame(
-        mapped_data,
-        columns=[
-            "url",
-            "length_url",
-            "length_hostname",
-            "ip",
-            "nb_dots",
-            "nb_hyphens",
-            "nb_at",
-            "nb_qm",
-            "nb_and",
-            "nb_or",
-            "nb_eq",
-            "nb_underscore",
-            "nb_tilde",
-            "nb_percent",
-            "nb_slash",
-            "nb_star",
-            "nb_colon",
-            "nb_comma",
-            "nb_semicolon",
-            "nb_dollar",
-            "nb_space",
-            "nb_www",
-            "nb_com",
-            "nb_dslash",
-            "http_in_path",
-            "https_token",
-            "ratio_digits_url",
-            "ratio_digits_host",
-            "punycode",
-            "port",
-            "tld_in_path",
-            "tld_in_subdomain",
-            "abnormal_subdomain",
-            "nb_subdomains",
-            "prefix_suffix",
-            # "random_domain",
-            "shortening_service",
-            "path_extension",
-            "nb_redirection",
-            "nb_external_redirection",
-            "length_words_raw",
-            "char_repeat",
-            "shortest_words_raw",
-            "shortest_word_host",
-            "shortest_word_path",
-            "longest_words_raw",
-            "longest_word_host",
-            "longest_word_path",
-            "avg_words_raw",
-            "avg_word_host",
-            "avg_word_path",
-            "phish_hints",
-            "domain_in_brand",
-            "brand_in_subdomain",
-            "brand_in_path",
-            "suspecious_tld",
-            "statistical_report",
-            "nb_hyperlinks",
-            "ratio_intHyperlinks",
-            "ratio_extHyperlinks",
-            # "ratio_nullHyperlinks",
-            "nb_extCSS",
-            "ratio_intRedirection",
-            "ratio_extRedirection",
-            # "ratio_intErrors",
-            "ratio_extErrors",
-            "login_form",
-            "external_favicon",
-            "links_in_tags",
-            "submit_email",
-            "ratio_intMedia",
-            "ratio_extMedia",
-            "iframe",
-            "popup_window",
-            "safe_anchor",
-            "empty_title",
-            "domain_in_title",
-            "domain_with_copyright",
-            "whois_registered_domain",
-            "domain_registration_length",
-            "domain_age",
-            "dns_record",
-            "google_index",
-            "page_rank",
-            "rank",
-            "domainEnd",
-        ],
-    )
+    # Sử dụng ThreadPoolExecutor để xử lý song song
+    with ThreadPoolExecutor(max_workers=100) as executor:
+        results = list(executor.map(process_batch, url_batches))
 
-    df_result["status"] = "phishing"
-    # Display the resulting DataFrame
-    print(df_result)
-    # df_result.to_csv("output1.csv", index=False, encoding="utf-8")
+    # Flatten danh sách kết quả
+    mapped_data = [item for batch in results for item in batch]
 
-    # Tải tệp CSV hiện có nếu nó tồn tại
+    # Kiểm tra và lọc dữ liệu hợp lệ (dạng dictionary)
+    valid_data = [item for item in mapped_data if isinstance(item, dict)]
+
+    # Báo lỗi nếu không có dữ liệu hợp lệ
+    if not valid_data:
+        print(f"Không có dữ liệu hợp lệ trong {file_name}.")
+        return pd.DataFrame()  # Trả về DataFrame trống nếu không có dữ liệu hợp lệ
+
+    # Tạo DataFrame từ dữ liệu đã lọc
+    df_new = pd.DataFrame(valid_data)
+
+    # Gán giá trị status theo nguồn tệp
+    df_new["status"] = status_value
+
+    return df_new
+
+
+def process_and_save():
+    # Nhập dữ liệu từ cả hai tệp và gán giá trị status
+    df_legitimate = addingCSV("active_legitimate_urls.txt", "legitimate")
+    df_phishing = addingCSV("new_phishing_urls.txt", "phishing")
+
+    # Kiểm tra nếu cả hai DataFrame đều trống
+    if df_legitimate.empty and df_phishing.empty:
+        print("Không có dữ liệu hợp lệ từ cả hai tệp.")
+        return
+
+    # Chỉ hợp nhất dữ liệu nếu ít nhất một DataFrame có dữ liệu
+    if not df_legitimate.empty and not df_phishing.empty:
+        df_combined = pd.concat(
+            [df_legitimate, df_phishing], ignore_index=True
+        ).drop_duplicates(subset="url", keep="last")
+    elif not df_legitimate.empty:  # Nếu chỉ có dữ liệu từ tệp hợp lệ của legitimate
+        df_combined = df_legitimate
+    else:  # Nếu chỉ có dữ liệu từ tệp hợp lệ của phishing
+        df_combined = df_phishing
+
+    # Kiểm tra xem file CSV đã tồn tại chưa
     try:
-        df_existing = pd.read_csv("output.csv")
+        df_existing = pd.read_csv("output.csv", encoding="utf-8")
+        # Hợp nhất dữ liệu mới và cũ, tránh trùng lặp URL
+        df_combined = pd.concat(
+            [df_existing, df_combined], ignore_index=True
+        ).drop_duplicates(subset="url", keep="last")
     except FileNotFoundError:
-        df_existing = (
-            pd.DataFrame()
-        )  # Nếu tệp không tồn tại, bắt đầu với một DataFrame rỗng
+        # Nếu chưa có file cũ, chỉ lưu dữ liệu mới
+        pass
 
-    # Nối DataFrame mới với DataFrame hiện có
-    df_combined = pd.concat([df_existing, df_result], ignore_index=True)
-
-    # Xóa các bản sao nếu cần thiết
-    df_combined.drop_duplicates(subset=["url"], keep="last", inplace=True)
-
-    # Lưu DataFrame đã cập nhật vào tệp CSV
+    # Ghi dữ liệu vào file CSV
     df_combined.to_csv("output.csv", index=False, encoding="utf-8")
+    print("Dữ liệu đã được cập nhật và lưu vào file csv từ cả hai tệp.")
 
-    # Hiển thị DataFrame đã cập nhật
-    print(df_combined)
+
+def dataset_filtered():
+    # Đọc file CSV
+    df = pd.read_csv("output.csv")
+
+    # Loại bỏ cột cuối cùng
+    df = df.iloc[:, :-1]  # Chọn tất cả các cột trừ cột cuối cùng
+
+    # Tính số lượng giá trị rỗng trên mỗi hàng (NaN hoặc chuỗi rỗng)
+    empty_counts = df.isna().sum(axis=1) + (df == "").sum(axis=1)
+
+    # Lọc các hàng có trên 2 giá trị rỗng
+    df_filtered = df[empty_counts <= 2].copy()  # Giữ các hàng có tối đa 2 giá trị rỗng
+
+    # Thay thế giá trị rỗng bằng 0
+    df_filtered.fillna(0, inplace=True)  # Thay NaN bằng 0
+    df_filtered.replace("", 0, inplace=True)  # Thay chuỗi rỗng bằng 0
+
+    # Lưu kết quả vào một file CSV mới
+    df_filtered.to_csv("filter_output.csv", index=False)
+    print("Đã lọc và xử lý thành công!")
+    print(f"Số hàng ban đầu: {len(df)}, Số hàng sau khi lọc: {len(df_filtered)}")
 
 
 def main():
-    addingCSV()
+    process_and_save()
+    dataset_filtered()
 
 
 if __name__ == "__main__":

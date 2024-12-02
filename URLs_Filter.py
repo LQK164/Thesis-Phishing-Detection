@@ -1,5 +1,5 @@
 import time
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
@@ -32,46 +32,72 @@ def measure_time(func):
     return wrapper
 
 
-@measure_time
-def process_phishing_urls(input_files, phishing_file, output_file, max_workers=50):
+def merge_input_files(input_files, phishing_file):
+    """
+    Gộp các file đầu vào thành một file phishing_file.
+    """
     urls = set()
-
-    # Bước 1: Thu thập URL từ các file và gộp lại
-    start_collect_time = time.time()
     for input_file in input_files:
         with open(input_file, "r", encoding="utf-8") as file:
             for line in file:
                 url = line.strip()
                 if url:
-                    urls.add(url)  # Lọc trùng lặp ngay khi đọc
-    end_collect_time = time.time()
-    print(
-        f"Thời gian thu thập và gộp URL: {end_collect_time - start_collect_time:.2f} giây"
-    )
-
-    # Ghi tất cả URL vào file phishing_file
+                    urls.add(url)  # Lọc trùng lặp
     with open(phishing_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(urls))
+        f.write("\n".join(sorted(urls)) + "\n")
+    print(f"Gộp xong {len(urls)} URL vào {phishing_file}")
 
-    # Bước 2: Kiểm tra trạng thái URL và ghi các URL còn sống
+
+def get_existing_urls(file_path):
+    """
+    Đọc danh sách URL từ file.
+    """
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return set(line.strip() for line in f if line.strip())
+    except FileNotFoundError:
+        return set()
+
+
+@measure_time
+def process_phishing_urls(
+    phishing_file, active_file, new_urls_file, output_file, max_workers=50
+):
+    # Bước 1: Đọc tất cả URL từ phishing_file
+    with open(phishing_file, "r", encoding="utf-8") as file:
+        urls = set(line.strip() for line in file if line.strip())
+
+    # Bước 2: Kiểm tra trạng thái URL và lọc các URL còn sống
     valid_urls = set()
-    start_check_time = time.time()
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         results = executor.map(check_url, urls)
         for result in results:
-            if result:  # Chỉ thêm URL còn sống
+            if result:
                 valid_urls.add(result)
-    end_check_time = time.time()
-    print(
-        f"Thời gian kiểm tra URL còn sống: {end_check_time - start_check_time:.2f} giây"
-    )
 
-    # Ghi các URL còn sống vào file output_file
+    # Bước 3: So sánh với active_file
+    existing_urls = get_existing_urls(active_file)
+    new_urls = valid_urls - existing_urls
+
+    # Ghi URL mới vào new_urls_file
+    with open(new_urls_file, "w", encoding="utf-8") as f:
+        if new_urls:
+            f.write("\n".join(sorted(new_urls)) + "\n")
+        else:
+            f.write("")  # Ghi file rỗng nếu không có URL mới
+
+    # Bước 4: Ghi đè danh sách URL còn sống vào active_file
+    with open(active_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(sorted(valid_urls)))
+
+    # Bước 5: Ghi các URL còn sống vào output_file
     with open(output_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(valid_urls))
+        f.write("\n".join(sorted(valid_urls)))
 
-    # Bước 3: Đếm số lượng URL còn sống
+    # Thống kê
+    print(f"Tổng số URL trong {phishing_file}: {len(urls)}")
     print(f"Số lượng URL còn sống: {len(valid_urls)}")
+    print(f"Số lượng URL mới: {len(new_urls)}")
 
 
 # Sử dụng hàm
@@ -79,8 +105,14 @@ input_files = [
     r"URLs_Storage/phishtank_urls.txt",
     r"URLs_Storage/phishstats_urls.txt",
     r"URLs_Storage/openphish_urls.txt",
-    # r"URLs_Storage/phishing_database_github.txt",
-]  # Danh sách 4 file đầu vào
+]  # Danh sách file đầu vào
 phishing_file = "phishing_urls.txt"  # File gộp tất cả URL
-output_file = "active_phishing_urls.txt"  # File chứa URL còn sống
-process_phishing_urls(input_files, phishing_file, output_file)
+active_file = "active_phishing_urls.txt"  # File chứa URL còn sống từ lần chạy trước
+new_urls_file = "new_phishing_urls.txt"  # File chứa URL mới
+output_file = "active_phishing_urls.txt"  # Ghi đè file active với URL còn sống
+
+# Gộp các file đầu vào
+merge_input_files(input_files, phishing_file)
+
+# Xử lý URL và xuất kết quả
+process_phishing_urls(phishing_file, active_file, new_urls_file, output_file)

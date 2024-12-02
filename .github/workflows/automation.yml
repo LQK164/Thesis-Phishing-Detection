@@ -29,21 +29,17 @@ jobs:
         # Cài đặt các phụ thuộc nếu có, bạn có thể thêm các package cần thiết
         pip install -r requirements.txt #httpx tenacity
 
-    - name: Run phase 1
+    - name: Run URLs collecting
       run: |
-        python phase1.py  
-
-    #- name: Run phish_database
-    #  run: |
-    #    python phish_database.py  
+        python urls_collecting.py  
 
     - name: Run URLs filtering
       run: |
         python URLs_Filter.py
     
-    #- name: Run feature extraction
-    #  run: |
-    #    python feature_extraction.py
+    - name: Run feature extraction
+      run: |
+        python feature_extraction.py
 
     - name: Commit and push changes
       run: |
@@ -51,8 +47,12 @@ jobs:
         git config --global user.email "actions@github.com"
         git add ./URLs_Storage/
         git commit -m "Update URLs collected on $(date +'%Y-%m-%d %H:%M:%S')"
-        git add url_count.log
-        git commit -m "Update log file on $(date +'%Y-%m-%d %H:%M:%S')"
         git add active_phishing_urls.txt
         git commit -m "Update active_phishing_urls.txt on $(date +'%Y-%m-%d %H:%M:%S')"
+        git add new_phishing_urls.txt
+        git commit -m "Update new_phishing_urls.txt on $(date +'%Y-%m-%d %H:%M:%S')"
+        git add urls_output.csv
+        git commit -m "Update urls_output.csv on $(date +'%Y-%m-%d %H:%M:%S')"
+        git add filter_urls_output.csv
+        git commit -m "Create filtered_urls_output.csv on $(date +'%Y-%m-%d %H:%M:%S')"
         git push origin main
