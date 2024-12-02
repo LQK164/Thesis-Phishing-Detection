@@ -51,7 +51,7 @@ jobs:
         git commit -m "Update active_phishing_urls.txt on $(date +'%Y-%m-%d %H:%M:%S')"
         git add new_phishing_urls.txt
         git commit -m "Update new_phishing_urls.txt on $(date +'%Y-%m-%d %H:%M:%S')"
-        git add urls_output.csv
+        git add output.csv
         git commit -m "Update urls_output.csv on $(date +'%Y-%m-%d %H:%M:%S')"
         git add filter_urls_output.csv
         git commit -m "Create filtered_urls_output.csv on $(date +'%Y-%m-%d %H:%M:%S')"
