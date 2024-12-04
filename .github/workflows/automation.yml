@@ -54,5 +54,5 @@ jobs:
         git add output.csv
         git commit -m "Update output.csv on $(date +'%Y-%m-%d %H:%M:%S')"
         git add filter_output.csv
-        git commit -m "Create filtered_output.csv on $(date +'%Y-%m-%d %H:%M:%S')"
+        git commit -m "Create filter_output.csv on $(date +'%Y-%m-%d %H:%M:%S')"
         git push origin main
