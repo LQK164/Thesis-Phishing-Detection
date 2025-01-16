@@ -7,8 +7,6 @@ on:
   pull_request:
     branches:
       - main  # Kích hoạt workflow khi có pull request vào nhánh chính
-  schedule:
-      - cron: "0 0 * * *"
 
 jobs:
   run-script:
